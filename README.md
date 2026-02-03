@@ -205,8 +205,7 @@ hanime-downloader-server/
 │       ├── css/         # 样式文件
 │       └── js/          # JavaScript 文件
 ├── data/                # 数据目录
-│   ├── hanime.db        # SQLite 数据库
-│   └── config.json     # 配置文件（已废弃）
+│   └──hanime.db        # SQLite 数据库
 └── logs/                # 日志目录
     └── server.log       # 服务器日志
 ```
@@ -216,7 +215,6 @@ hanime-downloader-server/
 启动服务器后，可以访问：
 
 - **Swagger UI**: `http://127.0.0.1:16544/docs`
-- **ReDoc**: `http://127.0.0.1:16544/redoc`
 
 ## 数据库
 
