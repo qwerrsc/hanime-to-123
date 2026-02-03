@@ -80,11 +80,10 @@ docker-compose up -d
 
 #### 方式一：Client ID / Secret（不推荐目前收费）
 
-1. 访问 [123 云盘开放平台]([https://123yunpan.yuque.com/org-wiki-123yunpan-muaork/cr6ced])
-2. 登录并创建应用
-3. 获取应用的 Client ID 和 Client Secret
-4. 在设置页面切换到 "Client ID/Secret" 标签页并填入这两个值
-5. 点击"获取 Token" 测试连接
+1. 访问开发者权益专区购买
+2. 获取应用的 Client ID 和 Client Secret
+3. 在设置页面切换到 "Client ID/Secret" 标签页并填入这两个值
+4. 点击"获取 Token" 测试连接
 
 **注意**：开放平台 API 需要购买开发者权益包，推荐使用方式二。
 
