@@ -18,16 +18,22 @@
 ## 界面展示
 1.后台设置
 <img width="1334" height="710" alt="QQ截图20260203165056" src="https://github.com/user-attachments/assets/b3fa7d33-d7c8-43f2-81c5-bf0c69427fd3" />
+
 2.脚本推送
 <img width="829" height="764" alt="QQ截图20260203165415" src="https://github.com/user-attachments/assets/4f2a986e-a7d6-457b-bec4-9a29a6fdcf0c" />
+
 3.离线下载任务
 <img width="1434" height="321" alt="QQ截图20260203165553" src="https://github.com/user-attachments/assets/237662ce-9444-40e9-bf2b-39414ebd51ea" />
+
 4.运行日志
 <img width="1410" height="766" alt="QQ截图20260203165601" src="https://github.com/user-attachments/assets/67844273-a0f8-450b-8eda-4cfd61115a6e" />
+
 5.视频总览数据库
 <img width="1449" height="933" alt="QQ截图20260203165319" src="https://github.com/user-attachments/assets/17e0ec5c-1c4e-4deb-b2c3-29f0bef13ec3" />
+
 6.封面获取
 <img width="538" height="337" alt="QQ截图20260203165123" src="https://github.com/user-attachments/assets/a448189c-4c3e-45e3-9214-eb89e291ae10" />
+
 7.云盘显示
 <img width="929" height="579" alt="QQ截图20260203165624" src="https://github.com/user-attachments/assets/e37fbba9-0470-45a0-9a9c-7de15090d31f" />
 
