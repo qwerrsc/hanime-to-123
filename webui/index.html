@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanime 123云盘下载助手</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=2.0.1">
+    <script>
+        // UI版本检查
+        const CURRENT_UI_VERSION = '2.1.5';  // 与server.py中的UI_VERSION保持一致
+
+        // 防止重复执行检查
+        let hasCheckedVersion = false;
+
+        // 检查登录状态和UI版本
+        window.addEventListener('load', async () => {
+            // 如果已经检查过，直接返回
+            if (hasCheckedVersion) {
+                return;
+            }
+            hasCheckedVersion = true;
+
+            // 检查UI版本
+            try {
+                const response = await fetch('/api/ui-version');
+                const data = await response.json();
+                const savedVersion = localStorage.getItem('hanime_ui_version');
+
+                if (savedVersion !== data.version) {
+                    console.log(`UI版本更新: ${savedVersion} -> ${data.version}, 正在刷新页面...`);
+                    localStorage.setItem('hanime_ui_version', data.version);
+                    // 清除所有缓存
+                    if ('caches' in window) {
+                        const cacheNames = await caches.keys();
+                        await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    }
+                    // 使用 reload() 而不是 reload(true)，避免强制刷新导致的无限循环
+                    location.reload();
+                    return;
+                }
+            } catch (error) {
+                console.error('检查UI版本失败:', error);
+            }
+
+            // 检查登录状态
+            const userId = localStorage.getItem('hanime_user_id');
+            const username = localStorage.getItem('hanime_username');
+            const isLoggedIn = localStorage.getItem('hanime_logged_in') === 'true';
+
+            if (!userId || !username || !isLoggedIn) {
+                // 未登录，重定向到登录页
+                window.location.href = '/login.html';
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Hanime 123云盘下载助手</h1>
+            <div class="server-status">
+                <span id="server-status-indicator" class="status-indicator status-offline"></span>
+                <span id="server-status-text">监控服务: 未启动</span>
+                <button id="server-toggle-btn" class="btn btn-primary">启动监控</button>
+            </div>
+            <div class="user-info">
+                <span id="username-display"></span>
+                <button id="api-key-btn" class="btn btn-secondary btn-sm" title="获取API密钥">API密钥</button>
+                <button id="logout-btn" class="btn btn-danger btn-sm" title="退出登录">退出</button>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="tasks">任务列表</button>
+            <button class="tab-btn" data-tab="videos">视频总览</button>
+            <button class="tab-btn" data-tab="logs">日志</button>
+            <button class="tab-btn" data-tab="settings">设置</button>
+        </nav>
+
+
+        <main>
+            <!-- 任务列表标签页 -->
+            <div id="tab-tasks" class="tab-content active">
+                <div class="toolbar">
+                    <select id="task-filter" class="filter-select">
+                        <option value="all">全部</option>
+                        <option value="pending">等待中</option>
+                        <option value="downloading">下载中</option>
+                        <option value="renaming">重命名中</option>
+                        <option value="completed">已完成</option>
+                        <option value="failed">失败</option>
+                    </select>
+                    <button id="refresh-tasks-btn" class="btn btn-secondary">刷新</button>
+                    <button id="delete-completed-tasks-btn" class="btn btn-warning">删除已完成</button>
+                    <button id="delete-all-tasks-btn" class="btn btn-danger">全部删除</button>
+                </div>
+                <div class="table-container">
+                    <table id="tasks-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>任务ID</th>
+                                <th>标题</th>
+                                <th>状态</th>
+                                <th>进度</th>
+                                <th>文件夹</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasks-tbody">
+                            <tr>
+                                <td colspan="7" class="empty-message">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+
+            <!-- 视频总览标签页 -->
+            <div id="tab-videos" class="tab-content">
+                <div class="toolbar">
+                    <div class="search-box">
+                        <input type="text" id="video-search" placeholder="搜索视频标题或ID..." />
+                        <button id="video-search-btn" class="btn btn-secondary">搜索</button>
+                    </div>
+                    <button id="video-time-filter-btn" class="btn btn-secondary">发布日期</button>
+                    <select id="video-sort" class="filter-select">
+                        <option value="updated_at_desc" selected>最新推送</option>
+                        <option value="created_at_desc">发布时间 (最新)</option>
+                        <option value="created_at_asc">发布时间 (最早)</option>
+                    </select>
+                    <button id="refresh-videos-btn" class="btn btn-secondary">刷新</button>
+                    <button id="export-videos-btn" class="btn btn-secondary admin-only">导出</button>
+                    <button id="import-videos-btn" class="btn btn-secondary admin-only">导入</button>
+                    <button id="delete-all-videos-btn" class="btn btn-danger admin-only">清空视频库</button>
+                </div>
+                <div id="videos-container" class="videos-container">
+                    <div id="videos-grid" class="videos-grid">
+                        <div class="empty-message">加载中...</div>
+                    </div>
+                </div>
+                <!-- 分页控件 -->
+                <div class="pagination" id="video-pagination" style="display: none;">
+                    <button id="prev-page-btn" class="btn btn-secondary" disabled>上一页</button>
+                    <span id="page-info">第 1 页 / 共 1 页 (共 1 条)</span>
+                    <button id="next-page-btn" class="btn btn-secondary" disabled>下一页</button>
+                    <div class="page-jump">
+                        <span>跳转到</span>
+                        <input type="number" id="jump-page-input" class="jump-page-input" min="1" />
+                        <span>页</span>
+                        <button id="jump-page-btn" class="btn btn-primary btn-sm">跳转</button>
+                    </div>
+                    <select id="page-size-select" class="filter-select">
+                        <option value="12">12 条/页</option>
+                        <option value="20">20 条/页</option>
+                        <option value="36">36 条/页</option>
+                        <option value="48">48 条/页</option>
+                        <option value="60" selected>60 条/页</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 日志标签页 -->
+            <div id="tab-logs" class="tab-content">
+                <div class="toolbar">
+                    <select id="log-level-filter" class="filter-select">
+                        <option value="all">全部</option>
+                        <option value="info">信息</option>
+                        <option value="success">成功</option>
+                        <option value="warning">警告</option>
+                        <option value="error">错误</option>
+                    </select>
+                    <button id="clear-logs-btn" class="btn btn-secondary">清空日志</button>
+                    <button id="export-logs-btn" class="btn btn-secondary">导出日志</button>
+                </div>
+                <div id="logs-container" class="logs-container"></div>
+            </div>
+
+            <!-- 设置标签页 -->
+            <div id="tab-settings" class="tab-content">
+                <form id="settings-form" class="settings-form">
+                    <div class="settings-grid">
+                        <!-- 左列：认证配置 + 路径配置 -->
+                        <div class="settings-column">
+                            <div class="settings-group">
+                                <h3>123云盘认证配置</h3>
+                                <!-- 认证方式标签页 -->
+                                <div class="auth-tabs">
+                                    <button type="button" class="auth-tab active" data-auth="client">Client ID/Secret</button>
+                                    <button type="button" class="auth-tab" data-auth="account">账号密码登录</button>
+                                </div>
+                                
+                                <!-- Client ID/Secret 方式 -->
+                                <div id="client-auth" class="auth-content">
+                                    <div class="form-group">
+                                        <label for="client-id">Client ID:</label>
+                                        <input type="text" id="client-id" name="client_id" placeholder="123云盘 Client ID">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="client-secret">Client Secret:</label>
+                                        <input type="password" id="client-secret" name="client_secret" placeholder="123云盘 Client Secret">
+                                    </div>
+                                </div>
+                                
+                                <!-- 账号密码方式 -->
+                                <div id="account-auth" class="auth-content" style="display: none;">
+                                    <div class="form-group">
+                                        <label for="username">用户名/手机号:</label>
+                                        <input type="text" id="username" name="username" placeholder="123云盘用户名或手机号">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="password">密码:</label>
+                                        <input type="password" id="password" name="password" placeholder="123云盘密码">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button type="button" id="test-connection-btn" class="btn btn-primary">获取Token</button>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <h3>123云盘路径配置</h3>
+                                <div class="form-group">
+                                    <label for="root-dir-id">云盘文件夹ID:</label>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="number" id="root-dir-id" name="root_dir_id" min="0" value="0" style="flex: 1;">
+                                        <button type="button" id="select-folder-btn" class="btn btn-secondary" style="white-space: nowrap;">选择文件夹</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 右列：监控配置 + API密钥 -->
+                        <div class="settings-column">
+                            <div class="settings-group">
+                                <h3>监控配置</h3>
+                                <div class="form-group">
+                                    <label for="check-interval">检查间隔 (秒):</label>
+                                    <input type="number" id="check-interval" name="check_interval" min="3" max="3600" value="30">
+                                </div>
+                                <div class="form-group">
+                                    <label for="download-timeout">下载超时 (秒):</label>
+                                    <input type="number" id="download-timeout" name="download_timeout" min="60" max="86400" value="3600">
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <h3>API密钥管理</h3>
+                                <div class="form-group">
+                                    <label>当前API密钥:</label>
+                                    <div class="api-key-display-inline">
+                                        <input type="text" id="settings-api-key" readonly>
+                                        <button type="button" id="copy-api-key-btn-inline" class="btn btn-secondary btn-sm">复制</button>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="regenerate-password">重新生成API密钥:</label>
+                                    <div class="api-key-regenerate">
+                                        <input type="password" id="regenerate-password" placeholder="请输入密码验证">
+                                        <button type="button" id="regenerate-api-key-btn" class="btn btn-warning">重新生成</button>
+                                    </div>
+                                    <p class="help-text">重新生成API密钥后，旧的API密钥将失效，请更新油猴脚本中的配置。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions-center">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                        <button type="button" id="reset-settings-btn" class="btn btn-secondary">重置默认</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- API密钥弹窗 -->
+    <div id="api-key-modal" class="modal">
+        <div class="modal-content modal-center">
+            <h2>您的 API 密钥</h2>
+            <p class="modal-description">请在油猴脚本中配置此API密钥</p>
+            <div class="api-key-wrapper">
+                <input type="text" id="modal-api-key" readonly>
+                <button id="copy-api-key-btn" class="btn btn-primary btn-sm">复制</button>
+            </div>
+            <button id="close-api-key-modal" class="btn btn-secondary">关闭</button>
+        </div>
+    </div>
+
+    <!-- 文件夹选择器弹窗 -->
+    <div id="folder-selector-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>选择文件夹</h2>
+                <span class="modal-close" onclick="closeFolderSelector()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="folder-selector-toolbar">
+                    <button type="button" id="folder-back-btn" class="btn btn-secondary" onclick="goBackFolder()">返回上一级</button>
+                    <button type="button" id="folder-create-btn" class="btn btn-primary" onclick="showCreateFolderForm()">创建目录</button>
+                    <button type="button" id="folder-refresh-btn" class="btn btn-secondary" onclick="refreshFolderList()">刷新</button>
+                    <button type="button" id="folder-delete-btn" class="btn btn-danger" onclick="deleteSelectedFolder()" style="display: none;">删除选中</button>
+                    <span id="current-path" style="flex: 1; margin-left: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">/</span>
+                </div>
+                <div id="create-folder-form" class="create-folder-form" style="display: none;">
+                    <input type="text" id="new-folder-name" placeholder="输入目录名称" class="folder-name-input">
+                    <button type="button" class="btn btn-primary" onclick="createFolder()">确定</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideCreateFolderForm()">取消</button>
+                </div>
+                <div id="folder-list" class="folder-list">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeFolderSelector()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="confirmFolderSelection()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 时间筛选弹窗 -->
+    <div id="time-filter-modal" class="modal">
+        <div class="modal-content modal-center">
+            <h2>发布日期</h2>
+            <div class="time-filter-content">
+                <div class="time-filter-group">
+                    <label class="time-filter-label">年份</label>
+                    <div class="time-filter-selects">
+                        <select id="time-filter-year" class="filter-select">
+                            <option value="">全部</option>
+                        </select>
+                        <input type="number" id="time-filter-year-input" class="filter-input" placeholder="或输入年份（如2027）" min="1990" max="2100">
+                    </div>
+                </div>
+                <div class="time-filter-group">
+                    <label class="time-filter-label">月份</label>
+                    <div class="time-filter-selects">
+                        <select id="time-filter-month" class="filter-select">
+                            <option value="">全部</option>
+                            <option value="01">1月</option>
+                            <option value="02">2月</option>
+                            <option value="03">3月</option>
+                            <option value="04">4月</option>
+                            <option value="05">5月</option>
+                            <option value="06">6月</option>
+                            <option value="07">7月</option>
+                            <option value="08">8月</option>
+                            <option value="09">9月</option>
+                            <option value="10">10月</option>
+                            <option value="11">11月</option>
+                            <option value="12">12月</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="time-filter-divider"></div>
+                <div class="time-filter-quick">
+                    <div class="time-filter-option" data-filter="24h">
+                        <span>过去 24 小时</span>
+                    </div>
+                    <div class="time-filter-option" data-filter="2d">
+                        <span>过去 2 天</span>
+                    </div>
+                    <div class="time-filter-option" data-filter="1w">
+                        <span>过去 1 周</span>
+                    </div>
+                    <div class="time-filter-option" data-filter="1m">
+                        <span>过去 1 个月</span>
+                    </div>
+                    <div class="time-filter-option" data-filter="3m">
+                        <span>过去 3 个月</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="close-time-filter-btn" class="btn btn-secondary">取消</button>
+                <button id="confirm-time-filter-btn" class="btn btn-primary">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示容器 -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- JSZip库用于处理ZIP文件 -->
+    <script src="/static/js/jszip.min.js"></script>
+    <script src="/static/js/app.js?v=2.1.5"></script>
+</body>
+</html>
+
+

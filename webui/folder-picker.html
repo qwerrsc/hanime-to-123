@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>文件夹选择器 - Hanime 123云盘下载助手</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=2.0.1">
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #e5e5e5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #3d3d3d;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #ff6b6b;
+        }
+
+        .close-btn {
+            background: #3d3d3d;
+            border: none;
+            color: #e5e5e5;
+            cursor: pointer;
+            font-size: 20px;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #4d4d4d;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .toolbar button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #ff5252;
+        }
+
+        .btn-secondary {
+            background: #3d3d3d;
+            color: #e5e5e5;
+        }
+
+        .btn-secondary:hover {
+            background: #4d4d4d;
+        }
+
+        .current-path {
+            flex: 1;
+            margin-left: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .folder-list {
+            background: #252525;
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .folder-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #2d2d2d;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .folder-item:hover {
+            background: #3d3d3d;
+        }
+
+        .folder-item.selected {
+            background: #3d3d3d;
+            border: 2px solid #ff6b6b;
+        }
+
+        .folder-item-icon {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .folder-item-info {
+            flex: 1;
+        }
+
+        .folder-item-name {
+            font-weight: 500;
+            color: #e5e5e5;
+            margin-bottom: 4px;
+        }
+
+        .folder-item-id {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .copy-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #3d3d3d;
+        }
+
+        .copy-input input {
+            flex: 1;
+            padding: 10px;
+            background: #252525;
+            border: 1px solid #3d3d3d;
+            border-radius: 6px;
+            color: #e5e5e5;
+            font-size: 14px;
+        }
+
+        .copy-input input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 8px 12px;
+            background: #252525;
+            border: 1px solid #3d3d3d;
+            border-radius: 6px;
+            color: #e5e5e5;
+            font-size: 13px;
+            min-width: 200px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #999;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+
+        .message {
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .message-info {
+            background: rgba(79, 195, 247, 0.1);
+            border: 1px solid rgba(79, 195, 247, 0.3);
+            color: #4fc3f7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>文件夹选择器</h1>
+            <button class="close-btn" onclick="window.close()">×</button>
+        </div>
+
+        <div class="message message-info">
+            请选择文件夹，然后点击"复制ID"按钮将文件夹ID复制到剪贴板
+        </div>
+
+        <div class="toolbar">
+            <button class="btn-secondary" onclick="goBackFolder()">返回上一级</button>
+            <span class="current-path" id="current-path">/</span>
+        </div>
+
+        <div class="toolbar">
+            <div style="display: flex; gap: 10px; flex: 1;">
+                <input type="text" id="folder-search" placeholder="搜索文件夹..." class="search-input">
+                <button class="btn-primary" onclick="searchFolders()">搜索</button>
+                <button class="btn-secondary" onclick="clearSearch()">清除</button>
+            </div>
+            <div id="search-status" style="color: #999; font-size: 12px;"></div>
+        </div>
+
+        <div class="folder-list" id="folder-list">
+            <div class="loading">加载中...</div>
+        </div>
+
+        <div class="copy-input">
+            <input type="text" id="selected-folder-id" placeholder="请选择文件夹" readonly>
+            <button class="btn-primary" onclick="copyFolderId()">复制ID</button>
+        </div>
+    </div>
+
+    <script>
+        // API基础URL
+        const API_BASE = '/api';
+
+        // 当前父目录ID
+        let currentParentId = 0;
+
+        // 选中的文件夹ID
+        let selectedFolderId = null;
+
+        // 路径栈
+        let folderPathStack = [{ id: 0, name: '根目录' }];
+
+        // 用户配置的根目录ID
+        let userRootDirId = 0;
+
+        // 存储所有文件夹数据用于搜索
+        let allFoldersCache = null;
+        let isSearchMode = false;
+        // 存储当前父目录的子文件夹列表（用于快速切换）
+        let foldersByParentId = {};
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 获取用户配置，获取 root_dir_id
+            try {
+                const configResponse = await fetch(`${API_BASE}/config/public`, {
+                    credentials: 'include'
+                });
+                const configData = await configResponse.json();
+                console.log('用户配置:', configData);
+                if (configData.success && configData.pan123) {
+                    userRootDirId = configData.pan123.root_dir_id || 0;
+                    console.log('root_dir_id:', userRootDirId);
+                    // 直接使用 root_dir_id 作为当前目录
+                    currentParentId = userRootDirId;
+                    folderPathStack = [{ id: userRootDirId, name: '根目录' }];
+                }
+            } catch (error) {
+                console.error('获取用户配置失败:', error);
+            }
+
+            console.log('当前目录ID:', currentParentId);
+            console.log('路径栈:', folderPathStack);
+
+            // 直接加载指定目录下的文件夹
+            await loadFolders(currentParentId);
+            updatePathDisplay();
+
+            // 添加搜索框回车事件
+            document.getElementById('folder-search').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchFolders();
+                }
+            });
+        });
+
+        // 加载文件夹列表
+        async function loadFolders(parentId, forceRefresh = false) {
+            const folderList = document.getElementById('folder-list');
+
+            // 如果已经缓存过该目录的文件夹列表，直接使用缓存
+            if (!forceRefresh && foldersByParentId[parentId]) {
+                const cachedFolders = foldersByParentId[parentId];
+                renderFolders(cachedFolders);
+                return;
+            }
+
+            folderList.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                // 使用公开API，因为这是独立页面，通过session cookie自动认证
+                // 服务器端会自动使用分批加载（last_file_id），这里limit参数会被忽略
+                const response = await fetch(`${API_BASE}/folders/public?parent_id=${parentId}`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // 缓存该目录的文件夹列表
+                    foldersByParentId[parentId] = data.folders || [];
+
+                    if (data.folders && data.folders.length > 0) {
+                        renderFolders(data.folders);
+                    } else {
+                        folderList.innerHTML = '<div class="empty">此目录为空</div>';
+                    }
+                } else {
+                    folderList.innerHTML = '<div class="loading">加载失败</div>';
+                }
+            } catch (error) {
+                console.error('加载文件夹列表失败:', error);
+                folderList.innerHTML = '<div class="loading">加载失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 渲染文件夹列表（从缓存或新数据）
+        function renderFolders(folders) {
+            const folderList = document.getElementById('folder-list');
+
+            // 按修改时间排序，新的在上面（update_at 字段）
+            const sortedFolders = folders.sort((a, b) => {
+                // 使用 update_at 字段，按时间降序排序（修改时间新的在上面）
+                if (a.update_at && b.update_at) {
+                    return new Date(b.update_at) - new Date(a.update_at);
+                }
+                // 没有修改时间，按创建时间排序
+                if (a.create_at && b.create_at) {
+                    return new Date(b.create_at) - new Date(a.create_at);
+                }
+                // 没有时间字段，按文件名排序
+                return a.filename.localeCompare(b.filename);
+            });
+
+            folderList.innerHTML = sortedFolders.map(folder => `
+                <div class="folder-item" data-id="${folder.file_id}" data-name="${escapeHtml(folder.filename)}"
+                     onclick="selectFolder(this)" ondblclick="enterFolder(${folder.file_id}, '${escapeHtml(folder.filename)}')">
+                    <span class="folder-item-icon">📁</span>
+                    <div class="folder-item-info">
+                        <div class="folder-item-name">${escapeHtml(folder.filename)}</div>
+                        <div class="folder-item-id">ID: ${folder.file_id}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 选择文件夹
+        function selectFolder(element) {
+            // 移除其他选中状态
+            document.querySelectorAll('.folder-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+
+            // 添加选中状态
+            element.classList.add('selected');
+            selectedFolderId = parseInt(element.dataset.id);
+
+            // 更新输入框（转换为字符串）
+            document.getElementById('selected-folder-id').value = String(selectedFolderId);
+        }
+
+        // 双击进入文件夹
+        function enterFolder(folderId, folderName) {
+            selectedFolderId = folderId;
+            currentParentId = folderId;
+            folderPathStack.push({ id: folderId, name: folderName });
+            // 使用缓存加载，不重新请求（除非第一次访问该目录）
+            loadFolders(folderId, false);
+            updatePathDisplay();
+        }
+
+        // 返回上一级
+        function goBackFolder() {
+            if (folderPathStack.length > 1) {
+                folderPathStack.pop();
+                const prev = folderPathStack[folderPathStack.length - 1];
+                currentParentId = prev.id;
+                // 使用缓存加载，不重新请求
+                loadFolders(prev.id, false);
+                updatePathDisplay();
+                selectedFolderId = null;
+                document.getElementById('selected-folder-id').value = '';
+            }
+        }
+
+        // 更新路径显示
+        function updatePathDisplay() {
+            const pathSpan = document.getElementById('current-path');
+            if (pathSpan) {
+                const path = folderPathStack.map(item => item.name).join(' / ');
+                pathSpan.textContent = '/' + path;
+            }
+        }
+
+        // 搜索文件夹
+        async function searchFolders() {
+            const searchInput = document.getElementById('folder-search');
+            const searchTerm = searchInput.value.trim().toLowerCase();
+
+            if (!searchTerm) {
+                alert('请输入搜索关键词');
+                return;
+            }
+
+            const folderList = document.getElementById('folder-list');
+            folderList.innerHTML = '<div class="loading">搜索中...</div>';
+
+            try {
+                // 如果还没有缓存，先加载所有文件夹
+                if (!allFoldersCache) {
+                    const searchStatus = document.getElementById('search-status');
+                    searchStatus.textContent = '正在从服务器加载文件夹列表...';
+                    searchStatus.style.display = 'block';
+
+                    const response = await fetch(`${API_BASE}/folders/public?parent_id=${userRootDirId}`, {
+                        credentials: 'include'
+                    });
+                    const data = await response.json();
+
+                    if (data.success && data.folders) {
+                        allFoldersCache = data.folders;
+                        searchStatus.textContent = `已加载 ${data.folders.length} 个文件夹`;
+                        // 5秒后隐藏状态
+                        setTimeout(() => {
+                            searchStatus.style.display = 'none';
+                        }, 5000);
+                    } else {
+                        folderList.innerHTML = '<div class="empty">加载失败</div>';
+                        return;
+                    }
+                }
+
+                // 本地搜索
+                const filteredFolders = allFoldersCache.filter(folder => {
+                    const filename = folder.filename.toLowerCase();
+                    return filename.includes(searchTerm);
+                });
+
+                // 按修改时间排序
+                const sortedFolders = filteredFolders.sort((a, b) => {
+                    if (a.update_at && b.update_at) {
+                        return new Date(b.update_at) - new Date(a.update_at);
+                    }
+                    if (a.create_at && b.create_at) {
+                        return new Date(b.create_at) - new Date(a.create_at);
+                    }
+                    return a.filename.localeCompare(b.filename);
+                });
+
+                if (sortedFolders.length > 0) {
+                    isSearchMode = true;
+                    folderList.innerHTML = sortedFolders.map(folder => `
+                        <div class="folder-item" data-id="${folder.file_id}" data-name="${escapeHtml(folder.filename)}"
+                             onclick="selectFolder(this)" ondblclick="enterFolder(${folder.file_id}, '${escapeHtml(folder.filename)}')">
+                            <span class="folder-item-icon">📁</span>
+                            <div class="folder-item-info">
+                                <div class="folder-item-name">${escapeHtml(folder.filename)}</div>
+                                <div class="folder-item-id">ID: ${folder.file_id}</div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    const searchStatus = document.getElementById('search-status');
+                    searchStatus.textContent = `找到 ${sortedFolders.length} 个匹配的文件夹`;
+                } else {
+                    folderList.innerHTML = '<div class="empty">未找到匹配的文件夹</div>';
+                    const searchStatus = document.getElementById('search-status');
+                    searchStatus.textContent = '未找到匹配的文件夹';
+                }
+            } catch (error) {
+                console.error('搜索失败:', error);
+                folderList.innerHTML = '<div class="loading">搜索失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 清除搜索
+        function clearSearch() {
+            document.getElementById('folder-search').value = '';
+            isSearchMode = false;
+            // 使用缓存加载，不重新请求
+            loadFolders(currentParentId, false);
+            const searchStatus = document.getElementById('search-status');
+            if (searchStatus) {
+                searchStatus.textContent = '';
+            }
+        }
+
+        // 复制文件夹ID
+        async function copyFolderId() {
+            const input = document.getElementById('selected-folder-id');
+            const folderId = input.value;
+            if (!folderId) {
+                alert('请先选择一个文件夹');
+                return;
+            }
+
+            const folderIdStr = String(folderId);
+
+            // 优先使用 navigator.clipboard
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(folderIdStr);
+                    alert(`文件夹ID已复制: ${folderIdStr}`);
+                    // 可选：关闭窗口
+                    // window.close();
+                    return;
+                } catch (err) {
+                    console.error('navigator.clipboard 复制失败，尝试降级方案:', err);
+                }
+            }
+
+            // 降级方案：手动选择文本
+            try {
+                input.select();
+                input.setSelectionRange(0, input.value.length); // 兼容移动端
+                const successful = document.execCommand('copy');
+
+                // 取消选中文本
+                input.setSelectionRange(0, 0);
+                input.blur();
+
+                if (successful) {
+                    alert(`文件夹ID已复制: ${folderIdStr}`);
+                } else {
+                    throw new Error('execCommand copy failed');
+                }
+            } catch (err) {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动复制');
+            }
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

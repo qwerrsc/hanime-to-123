@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanime 123云盘下载助手 - 登录</title>
+    <script>
+        // UI版本检查
+        const CURRENT_UI_VERSION = '2.0.1';  // 与server.py中的UI_VERSION保持一致
+
+        // 防止重复执行检查
+        let hasCheckedVersion = false;
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: #2d2d2d;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .login-header h1 {
+            color: #e5e5e5;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .login-header p {
+            color: #999;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #e5e5e5;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1e1e1e;
+            border: 1px solid #3d3d3d;
+            border-radius: 6px;
+            color: #e5e5e5;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #ff5252;
+        }
+        
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        .register-link a {
+            color: #ff6b6b;
+            text-decoration: none;
+        }
+        
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .api-key-section {
+            margin-top: 24px;
+            padding: 16px;
+            background: #1e1e1e;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .api-key-section.show {
+            display: block;
+        }
+
+        .api-key-hint {
+            color: #999;
+            font-size: 12px;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+        
+        .api-key-title {
+            color: #e5e5e5;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+        
+        .api-key-display {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .api-key-display input {
+            flex: 1;
+            padding: 8px 12px;
+            background: #252525;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            color: #e5e5e5;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .api-key-display button {
+            padding: 8px 12px;
+            background: #3d3d3d;
+            color: #e5e5e5;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        
+        .api-key-display button:hover {
+            background: #4d4d4d;
+        }
+        
+        .alert {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .alert.error {
+            background: rgba(239, 83, 80, 0.1);
+            color: #ef5350;
+            border: 1px solid #ef5350;
+        }
+        
+        .alert.success {
+            background: rgba(102, 187, 106, 0.1);
+            color: #66bb6a;
+            border: 1px solid #66bb6a;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Hanime 123云盘下载助手</h1>
+            <p>请登录或注册以继续</p>
+        </div>
+        
+        <div id="alert-container"></div>
+        
+        <div id="login-form">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" placeholder="输入用户名" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" placeholder="输入密码" required>
+            </div>
+            
+            <button class="btn" id="login-btn">登录</button>
+            
+            <div class="register-link">
+                没有账号？<a href="#" id="register-link">立即注册</a>
+            </div>
+        </div>
+        
+        <div id="register-form" style="display: none;">
+            <div class="form-group">
+                <label for="new-username">用户名</label>
+                <input type="text" id="new-username" placeholder="输入用户名" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="new-password">密码</label>
+                <input type="password" id="new-password" placeholder="设置密码" required>
+            </div>
+            
+            <button class="btn" id="register-btn">注册</button>
+            
+            <div class="register-link">
+                已有账号？<a href="#" id="back-to-login">返回登录</a>
+            </div>
+        </div>
+        
+        <div class="api-key-section" id="api-key-section">
+            <div class="api-key-title">您的 API 密钥（请在油猴脚本中配置）</div>
+            <div class="api-key-display">
+                <input type="text" id="api-key-input" readonly>
+                <button id="copy-key-btn">复制</button>
+            </div>
+            <div class="api-key-hint">
+                重要提示：此API密钥仅显示一次，请务必妥善保存！<br>
+                如果忘记，可以在后台设置中重新生成。
+            </div>
+        </div>
+    </div>
+    
+        <script>
+        const API_BASE = '/api';
+
+        // 显示提示信息
+        function showAlert(message, type = 'error') {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `<div class="alert ${type}">${message}</div>`;
+
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // 登录
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showAlert('请输入用户名和密码');
+                return;
+            }
+
+            const btn = document.getElementById('login-btn');
+            btn.disabled = true;
+            btn.textContent = '登录中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // 登录时不显示API密钥，直接跳转
+                    redirectHome(data.user_id, data.username, data.api_key);
+                } else {
+                    showAlert(data.detail || '登录失败');
+                }
+            } catch (error) {
+                showAlert('网络错误，请稍后重试');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        });
+        
+        // 注册
+        document.getElementById('register-btn').addEventListener('click', async () => {
+            const username = document.getElementById('new-username').value.trim();
+            const password = document.getElementById('new-password').value;
+            
+            if (!username || !password) {
+                showAlert('请输入用户名和密码');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showAlert('密码长度至少为6位');
+                return;
+            }
+            
+            const btn = document.getElementById('register-btn');
+            btn.disabled = true;
+            btn.textContent = '注册中...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showAlert('注册成功！', 'success');
+                    showApiKey(data.api_key, data.user_id, data.username);
+                } else {
+                    showAlert(data.detail || '注册失败');
+                }
+            } catch (error) {
+                showAlert('网络错误，请稍后重试');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '注册';
+            }
+        });
+        
+        // 显示API密钥并跳转（仅在注册时显示）
+        function showApiKey(apiKey, userId, username) {
+            const section = document.getElementById('api-key-section');
+            const input = document.getElementById('api-key-input');
+            section.classList.add('show');
+            input.value = apiKey;
+
+            // 保存到localStorage
+            localStorage.setItem('hanime_api_key', apiKey);
+            localStorage.setItem('hanime_user_id', userId);
+            localStorage.setItem('hanime_username', username);
+            localStorage.setItem('hanime_logged_in', 'true');
+
+            showAlert('注册成功！请复制您的API密钥', 'success');
+
+            // 5秒后跳转到主页面，给用户足够时间复制
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 5000);
+        }
+
+        // 直接跳转到主页面（登录时）
+        function redirectHome(userId, username, apiKey) {
+            // 保存到localStorage
+            localStorage.setItem('hanime_api_key', apiKey);
+            localStorage.setItem('hanime_user_id', userId);
+            localStorage.setItem('hanime_username', username);
+            localStorage.setItem('hanime_logged_in', 'true');
+
+            showAlert('登录成功！正在跳转到管理后台...', 'success');
+
+            // 1秒后跳转到主页面
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        }
+
+        // 检查是否已登录和UI版本
+        window.addEventListener('load', async () => {
+            // 如果已经检查过，直接返回
+            if (hasCheckedVersion) {
+                return;
+            }
+            hasCheckedVersion = true;
+
+            // 检查UI版本
+            try {
+                const response = await fetch('/api/ui-version');
+                const data = await response.json();
+                const savedVersion = localStorage.getItem('hanime_ui_version');
+
+                if (savedVersion !== data.version) {
+                    console.log(`UI版本更新: ${savedVersion} -> ${data.version}, 正在刷新页面...`);
+                    localStorage.setItem('hanime_ui_version', data.version);
+                    // 清除所有缓存
+                    if ('caches' in window) {
+                        const cacheNames = await caches.keys();
+                        await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    }
+                    // 使用 reload() 而不是 reload(true)，避免强制刷新导致的无限循环
+                    location.reload();
+                    return;
+                }
+            } catch (error) {
+                console.error('检查UI版本失败:', error);
+            }
+
+            // 检查登录状态
+            const isLoggedIn = localStorage.getItem('hanime_logged_in') === 'true';
+            if (isLoggedIn) {
+                // 已登录，询问是否切换用户
+                const currentUsername = localStorage.getItem('hanime_username') || '未知用户';
+                if (confirm(`当前已登录用户：${currentUsername}\n是否要切换到其他用户？`)) {
+                    // 清除登录状态，允许重新登录
+                    localStorage.removeItem('hanime_user_id');
+                    localStorage.removeItem('hanime_username');
+                    localStorage.removeItem('hanime_logged_in');
+                    // 保留 API key，因为它可能被脚本使用
+                    // localStorage.removeItem('hanime_api_key');
+                } else {
+                    // 不切换，跳转到主页
+                    window.location.href = '/';
+                }
+            }
+        });
+        
+        // 复制API密钥
+        document.getElementById('copy-key-btn').addEventListener('click', () => {
+            const input = document.getElementById('api-key-input');
+            input.select();
+            document.execCommand('copy');
+            
+            const btn = document.getElementById('copy-key-btn');
+            btn.textContent = '已复制！';
+            setTimeout(() => {
+                btn.textContent = '复制';
+            }, 2000);
+        });
+        
+        // 切换表单
+        document.getElementById('register-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+        });
+        
+        document.getElementById('back-to-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
