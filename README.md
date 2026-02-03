@@ -80,7 +80,7 @@ docker-compose up -d
 
 #### 方式一：Client ID / Secret（不推荐目前收费）
 
-1. 访问 [123 云盘开放平台](https://open.123pan.com/)
+1. 访问 [123 云盘开放平台]([https://open.123pan.com/](https://123yunpan.yuque.com/org-wiki-123yunpan-muaork/cr6ced))
 2. 登录并创建应用
 3. 获取应用的 Client ID 和 Client Secret
 4. 在设置页面切换到 "Client ID/Secret" 标签页并填入这两个值
